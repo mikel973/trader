@@ -1,1 +1,1 @@
-# trader
+# trader##  安装组件```pythonpip install qstockpip install backtraderpip install matplotlib``````pythonimport tushare as tsts.set_token('your token here')pro = ts.pro_api('your token')```
