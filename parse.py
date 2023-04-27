@@ -41,8 +41,8 @@ def runstrat():
 
     # Get a pandas dataframe
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    datapath = os.path.join(modpath, 'datas/test_daily.txt')
-    # datapath = ('datas/test_daily.txt')
+    datapath = os.path.join(modpath, 'test-data/test_daily.txt')
+    # datapath = ('test-data/test_daily.txt')
 
     # Simulate the header row isn't there if noheaders requested
     skiprows = 1 if args.noheaders else 0

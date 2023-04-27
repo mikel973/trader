@@ -11,7 +11,7 @@ lg = bs.login()
 # 详细指标参数，参见“历史行情指标参数”章节；“分钟线”参数与“日线”参数不同。“分钟线”不包含指数。
 # 分钟线指标：date,time,code,open,high,low,close,volume,amount,adjustflag
 # 周月线指标：date,code,open,high,low,close,volume,amount,adjustflag,turn,pctChg
-rs = bs.query_history_k_data_plus("sh.000001", "date,open,high,low,close,volume,amount,turn",start_date='2022-01-01',frequency="d", adjustflag="2")
+rs = bs.query_history_k_data_plus("sz.000001", "date,open,high,low,close,preclose,volume,amount,turn", frequency="d", adjustflag="2")
 print('query_history_k_data_plus respond error_code:'+rs.error_code)
 print('query_history_k_data_plus respond  error_msg:'+rs.error_msg)
 
@@ -23,10 +23,10 @@ while (rs.error_code == '0') & rs.next():
 result = pd.DataFrame(data_list, columns=rs.fields)
 
 #### 结果集输出到csv文件 ####
-result.to_csv("./datas/test_daily.csv", index=False)
+result.to_csv("./test-data/sz-000001-test_daily.txt", index=False)
 
 # result = rs.get_data()
-# result.to_csv("./datas/test_daily2.csv")
+# result.to_csv("./test-data/test_daily2.csv")
 
 print(result)
 #
