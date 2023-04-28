@@ -9,10 +9,10 @@ import backtrader as bt
 
 class DualMaStrategy(bt.Strategy):
     params = (
-        ('sPeriod', 5),
-        ('mPeriod', 20),
-        ('lPeriod', 60),
-        ('printlog', True),
+        ('sPeriod', 7),
+        ('mPeriod', 22),
+        ('lPeriod', 41),
+        ('printlog', False),
     )
 
     def log(self, txt, dt=None, doprint=False):
@@ -116,13 +116,13 @@ if __name__ == '__main__':
 
     # Add a strategy
     # strats = cerebro.optstrategy(
-    #     TestStrategy,
-    #     maperiod=range(10, 61))
+    #     DualMaStrategy,
+    #     sPeriod=range(10, 61))
     strats = cerebro.addstrategy(DualMaStrategy)
 
     # Datas are in a subfolder of the samples. Need to find where the script is
     # because it could have been called from anywhere
-    datapath = os.path.join('../test-data/min60-sz.000001.csv')
+    datapath = os.path.join('../test-data/daily-sz.000001.csv')
 
     # Create a Data Feed
     # date,time,open,high,low,close,volume,amount
@@ -134,11 +134,11 @@ if __name__ == '__main__':
         tmformat=('%H:%M:%S'),
 
         datetime=0,
-        time=1,
-        high=3,
-        low=4,
-        open=2,
-        close=5,
+        time=-1,
+        high=2,
+        low=3,
+        open=1,
+        close=4,
         volume=6,
         openinterest=-1
     )
@@ -158,4 +158,4 @@ if __name__ == '__main__':
     # Run over everything
     cerebro.run(maxcpus=1)
 
-    cerebro.plot()
+    #cerebro.plot()

@@ -2,6 +2,9 @@ import tushare as ts
 import baostock as bs
 import pandas as pd
 
+from backtrader.utils import date2num
+from datetime import datetime
+
 class DataStock:
     # tushare 接口访问令牌
     __token = ''
@@ -57,7 +60,11 @@ class DataStock:
         minutes['time'] = pd.to_datetime(minutes['time'], format='%Y%m%d%H%M%S%f')
         minutes['time'] = minutes['time'].dt.strftime('%H:%M:%S')
 
+        minutes['date'] = minutes['date'] + ' ' + minutes['time']
+        # minutes['date'] = date2num(datetime.combine(minutes['date'], minutes['time']))
+
         minutes.to_csv(csv_name, index=False)
+
         return minutes
 
 
