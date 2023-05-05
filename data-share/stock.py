@@ -35,12 +35,13 @@ class DataStock:
     # 股票代码，sh或sz.+6位数字代码，或者指数代码
     # adjustflag：复权类型，默认不复权：3；1：后复权；2：前复权
     # frequency：默认为d，日k线；d=日k线
-    def stock_bs_daily(self, code, csv_name):
+    def stock_bs_daily(self, code, csv_name, from_date):
         bs.login()
-        rs = bs.query_history_k_data_plus(code, "date,open,high,low,close,preclose,volume,amount,turn", start_date='2015-01-01', frequency="d", adjustflag="2")
+        # start_date='2015-01-01'
+        rs = bs.query_history_k_data_plus(code, "date,open,high,low,close,preclose,volume,amount,turn", start_date=from_date, frequency="d", adjustflag="2")
         daily = rs.get_data()
         bs.logout()
-        daily.to_csv(csv_name, index=False)
+        # daily.to_csv(csv_name, index=False)
         return daily
 
     # frequency="w" or "m"
@@ -93,32 +94,40 @@ def saveBasic():
     return
 
 
-def getSymbol(symbol):
-    print("try to get symbol ", symbol)
+def getSymbol(exchange):
+    print("try to get symbol ", exchange)
 
     # 连接到SQLite数据库
     conn = sqlite3.connect('../test-data/example.db')
 
     # 从数据库中读取数据到DataFrame
-    query = "SELECT symbol,exchange,list_date FROM basic WHERE symbol=?"
-    df = pd.read_sql_query(query, conn, params=[symbol])
-    # 关闭数据库连接
-    conn.close()
+    query = "SELECT symbol,exchange,list_date FROM basic WHERE exchange=?"
+    df = pd.read_sql_query(query, conn, params=[exchange])
+
 
     # 打印结果
     print(df)
-
     ds = DataStock("f8ab08eb9eb8223df1758fd93d42870820d74f29268d15ca9ee90a58")
     # 遍历DataFrame并打印每一行
     for index, row in df.iterrows():
-        code = row['symbol']
+        print('exchange:'+row['exchange'] + '  symbol:'+row['symbol'] + '  start:'+row['list_date'])
+        from_date = datetime.strptime(row['list_date'], '%Y%m%d').strftime('%Y-%m-%d')
+        symbol = row['symbol']
         if row['exchange'] == 'SZSE':
-            code = 'sz.' + code
+            code = 'sz.' + symbol
         elif row['exchange'] == 'SSE':
-            code = 'sh.' + code
+            code = 'sh.' + symbol
 
-        ds.stock_bs_daily(code, '../test-data/' + 'daily-' + code + '.csv')
-        ds.stock_bs_minutes(code, '../test-data/' + 'min60-' + code + '.csv')
+        daily = ds.stock_bs_daily(code, '../test-data/' + 'daily-' + code + '.csv', from_date)
+        daily['exchange'] = exchange
+        daily['symbol'] = symbol
+        daily.to_sql(name='daily', con=conn, if_exists='append', index=False)
+        # ds.stock_bs_minutes(code, '../test-data/' + 'min60-' + code + '.csv')
+
+        # break
+
+    # 关闭数据库连接
+    conn.close()
 
     return
 
@@ -126,4 +135,4 @@ def getSymbol(symbol):
 if __name__ == '__main__':
     # start()
     saveBasic()
-    getSymbol('600000')
+    getSymbol('SSE')

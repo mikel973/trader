@@ -1,0 +1,179 @@
+import tushare as ts
+import baostock as bs
+import pandas as pd
+import sqlite3
+
+from datetime import datetime
+
+
+class ChinaStock:
+    # tushare 接口访问令牌
+    __token = ''
+    __is_login = False
+
+    def __init__(self, token):
+        self.__token = token
+        self.__is_login = False
+
+    # 获取基础信息数据，包括股票代码、名称、上市日期、退市日期等
+    # https://tushare.pro/document/2?doc_id=25
+    # exchange 交易所 SSE 上交所 SZSE 深交所 BSE 北交所
+    def stock_ts_basics(self, csv_name):
+        # 'fullname,enname,cnspell,delist_date'
+        col_name = 'ts_code,symbol,name,area,industry,market,exchange,list_date,is_hs'
+        pro = ts.pro_api(self.__token)
+        basic = pro.stock_basic(list_status='L', fields=col_name)
+        basic.to_csv(csv_name, index=True)
+        return basic
+
+    def stock_bs_login(self):
+        bs.login()
+        self.__is_login = True
+        return
+
+    def stock_bs_logout(self):
+        bs.logout()
+        self.__is_login = False
+        return
+
+    # 历史A股K线数据
+    # http://baostock.com/baostock/index.php/Python_API%E6%96%87%E6%A1%A3
+    # 股票代码，sh或sz.+6位数字代码，或者指数代码
+    # adjustflag：复权类型，默认不复权：3；1：后复权；2：前复权
+    # frequency：默认为d，日k线；d=日k线 w=周k线
+    def stock_bs_daily(self, code, from_date):
+
+        if not self.__is_login:
+            return None
+        rs = bs.query_history_k_data_plus(code, "date,open,high,low,close,volume,turn", start_date=from_date, frequency="d", adjustflag="2")
+        daily = rs.get_data()
+        return daily
+
+    # frequency="60" or "30" or "15"
+    def stock_bs_minutes(self, code, from_date):
+        if not self.__is_login:
+            return None
+        rs = bs.query_history_k_data_plus(code, "date,time,open,high,low,close,volume", start_date=from_date, frequency="60", adjustflag="2")
+        minutes = rs.get_data()
+        return minutes
+
+
+def update_basic(db_name):
+    ts_token = "f8ab08eb9eb8223df1758fd93d42870820d74f29268d15ca9ee90a58"
+    cs = ChinaStock(ts_token)
+    basic = cs.stock_ts_basics('../test-data/stock_basic.csv')
+    if basic is None:
+        print('获取股票基本信息失败')
+        return
+
+    # 连接到SQLite数据库
+    conn = sqlite3.connect(db_name)
+    # 创建游标对象
+    cur = conn.cursor()
+
+    # 查询是否已经存在basic表
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='basic';")
+    result = cur.fetchone()
+    if result is None:
+        # 如果不存在，则创建basic表
+        print("try to create basic table...")
+        sql = '''
+            CREATE TABLE basic (
+                id INTEGER PRIMARY KEY,
+                ts_code TEXT,
+                symbol TEXT,
+                name TEXT,
+                area TEXT,
+                industry TEXT,
+                market TEXT,
+                exchange TEXT,
+                list_date TEXT,
+                is_hs TEXT,
+                is_daily INTEGER,
+                is_m60 INTEGER,
+                is_m30 INTEGER,
+                is_m15 INTEGER
+            )
+        '''
+        cur.execute(sql)
+        print("basic table created successfully.")
+        conn.commit()
+
+    # 将DataFrame中的数据写入SQLite数据库中的新表basic
+    basic['is_daily'] = 0
+    basic['is_m60'] = 0
+    basic['is_m30'] = 0
+    basic['is_m15'] = 0
+    result = basic.to_sql(name='basic', con=conn, if_exists='replace', index=True, index_label='id')
+    if result is None:
+        print('添加记录到数据库失败:'+result)
+
+    # 提交更改
+    conn.commit()
+    # 关闭游标和连接
+    cur.close()
+    conn.close()
+
+    print(f"共更新{len(basic)}条记录.")
+    return
+
+
+def get_stock_daily(db_name):
+
+    # 连接到SQLite数据库
+    conn = sqlite3.connect(db_name)
+
+    # 从数据库中读取数据到DataFrame
+    query = "SELECT symbol,exchange,list_date FROM basic WHERE is_daily=0 "
+    df = pd.read_sql_query(query, conn)
+
+    cs = ChinaStock("f8ab08eb9eb8223df1758fd93d42870820d74f29268d15ca9ee90a58")
+    cs.stock_bs_login()
+
+    # 遍历每一行数据
+    cur = conn.cursor()
+    for index, row in df.iterrows():
+        print('exchange:'+row['exchange'] + '  symbol:'+row['symbol'] + '  start:'+row['list_date'])
+
+        from_date = datetime.strptime(row['list_date'], '%Y%m%d').strftime('%Y-%m-%d')
+        symbol = row['symbol']
+        exchange = row['exchange']
+
+        if exchange == 'SZSE':
+            code = 'sz.' + symbol
+        elif exchange == 'SSE':
+            code = 'sh.' + symbol
+
+        daily = cs.stock_bs_daily(code, from_date)
+        if daily is None:
+            print(f"### 获取{symbol}历史数据失败:")
+            continue
+
+        daily['symbol'] = symbol
+        result = daily.to_sql(name='daily', con=conn, if_exists='append', index=False)
+        if result is None:
+            print(f"### 追加{symbol}历史数据失败:{result}")
+            continue
+        conn.commit()
+        print(f"追加{symbol}历史数据记录:{result}条.")
+
+        # 更新basic表状态
+        cur.execute(f"UPDATE basic SET is_daily=? WHERE symbol=?", (1,symbol))
+        conn.commit()
+
+        break
+
+    cs.stock_bs_logout()
+
+    # 关闭数据库连接
+    cur.close()
+    conn.close()
+
+    return
+
+
+if __name__ == '__main__':
+    # start()
+    db_name = '../test-data/stock.db'
+    # update_basic(db_name)
+    get_stock_daily(db_name)
