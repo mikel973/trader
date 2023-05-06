@@ -18,12 +18,12 @@ class ChinaStock:
     # 获取基础信息数据，包括股票代码、名称、上市日期、退市日期等
     # https://tushare.pro/document/2?doc_id=25
     # exchange 交易所 SSE 上交所 SZSE 深交所 BSE 北交所
-    def stock_ts_basics(self, csv_name):
+    def stock_ts_basics(self):
         # 'fullname,enname,cnspell,delist_date'
         col_name = 'ts_code,symbol,name,area,industry,market,exchange,list_date,is_hs'
         pro = ts.pro_api(self.__token)
         basic = pro.stock_basic(list_status='L', fields=col_name)
-        basic.to_csv(csv_name, index=True)
+        # basic.to_csv(csv_name, index=True)
         return basic
 
     def stock_bs_login(self):
@@ -58,46 +58,51 @@ class ChinaStock:
         return minutes
 
 
-def update_basic(db_name):
-    ts_token = "f8ab08eb9eb8223df1758fd93d42870820d74f29268d15ca9ee90a58"
-    cs = ChinaStock(ts_token)
-    basic = cs.stock_ts_basics('../test-data/stock_basic.csv')
-    if basic is None:
-        print('获取股票基本信息失败')
-        return
-
+def update_basic(name_database, force_update: bool = False):
     # 连接到SQLite数据库
-    conn = sqlite3.connect(db_name)
+    conn = sqlite3.connect(name_database)
     # 创建游标对象
     cur = conn.cursor()
-
     # 查询是否已经存在basic表
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='basic';")
     result = cur.fetchone()
+
     if result is None:
-        # 如果不存在，则创建basic表
+        # 如果basic表不存在，则创建basic表
         print("try to create basic table...")
         sql = '''
-            CREATE TABLE basic (
-                id INTEGER PRIMARY KEY,
-                ts_code TEXT,
-                symbol TEXT,
-                name TEXT,
-                area TEXT,
-                industry TEXT,
-                market TEXT,
-                exchange TEXT,
-                list_date TEXT,
-                is_hs TEXT,
-                is_daily INTEGER,
-                is_m60 INTEGER,
-                is_m30 INTEGER,
-                is_m15 INTEGER
-            )
-        '''
+                    CREATE TABLE basic (
+                        id INTEGER PRIMARY KEY,
+                        ts_code TEXT,
+                        symbol TEXT,
+                        name TEXT,
+                        area TEXT,
+                        industry TEXT,
+                        market TEXT,
+                        exchange TEXT,
+                        list_date TEXT,
+                        is_hs TEXT,
+                        is_daily INTEGER,
+                        is_m60 INTEGER,
+                        is_m30 INTEGER,
+                        is_m15 INTEGER
+                    )
+                '''
         cur.execute(sql)
         print("basic table created successfully.")
         conn.commit()
+    else:
+        # basic 表存在,但是不强制更新，则直接返回
+        if not force_update:
+            return
+
+    # 更新basic表的数据
+    ts_token = "f8ab08eb9eb8223df1758fd93d42870820d74f29268d15ca9ee90a58"
+    cs = ChinaStock(ts_token)
+    basic = cs.stock_ts_basics()
+    if basic is None:
+        print('获取股票基本信息失败')
+        return
 
     # 将DataFrame中的数据写入SQLite数据库中的新表basic
     basic['is_daily'] = 0
@@ -110,11 +115,12 @@ def update_basic(db_name):
 
     # 提交更改
     conn.commit()
+
     # 关闭游标和连接
     cur.close()
     conn.close()
 
-    print(f"共更新{len(basic)}条记录.")
+    print(f"共更新basic数据{len(basic)}条记录.")
     return
 
 
@@ -158,10 +164,10 @@ def get_stock_daily(db_name):
         print(f"追加{symbol}历史数据记录:{result}条.")
 
         # 更新basic表状态
-        cur.execute(f"UPDATE basic SET is_daily=? WHERE symbol=?", (1,symbol))
+        cur.execute(f"UPDATE basic SET is_daily=? WHERE symbol=?", (1, symbol))
         conn.commit()
 
-        break
+        # break
 
     cs.stock_bs_logout()
 
@@ -175,5 +181,5 @@ def get_stock_daily(db_name):
 if __name__ == '__main__':
     # start()
     db_name = '../test-data/stock.db'
-    # update_basic(db_name)
+    update_basic(db_name)
     get_stock_daily(db_name)
