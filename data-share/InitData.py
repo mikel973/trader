@@ -50,13 +50,17 @@ class ChinaStock:
         return daily
 
     # frequency="60" or "30" or "15"
-    def stock_bs_minutes(self, code, from_date):
+    def stock_bs_minutes(self, code, from_date, to_date=None, freq='60'):
         if not self.__is_login:
             return None
-        rs = bs.query_history_k_data_plus(code, "date,time,open,high,low,close,volume", start_date=from_date, frequency="60", adjustflag="2")
+        #数据条数限制 1W 以内，需要分段获取
+        rs = bs.query_history_k_data_plus(code, "date,time,open,high,low,close,volume",
+                                          start_date=from_date,
+                                          end_date=to_date,
+                                          frequency=freq,
+                                          adjustflag="2")
         minutes = rs.get_data()
         return minutes
-
 
 def update_basic(name_database, force_update: bool = False):
     # 连接到SQLite数据库
@@ -178,8 +182,64 @@ def get_stock_daily(db_name):
     return
 
 
+def get_stock_minutes(db_name, freq='60'):
+    # 连接到SQLite数据库
+    conn = sqlite3.connect(db_name)
+
+    # 从数据库中读取数据到DataFrame
+    query = f"SELECT symbol,exchange,list_date FROM basic WHERE is_m{freq}=0 "
+    df = pd.read_sql_query(query, conn)
+
+    cs = ChinaStock("f8ab08eb9eb8223df1758fd93d42870820d74f29268d15ca9ee90a58")
+    cs.stock_bs_login()
+
+    # 遍历每一行数据
+    cur = conn.cursor()
+    for index, row in df.iterrows():
+        print('exchange:'+row['exchange'] + '  symbol:'+row['symbol'] + '  start:'+row['list_date'])
+
+        from_date = datetime.strptime(row['list_date'], '%Y%m%d').strftime('%Y-%m-%d')
+        symbol = row['symbol']
+        exchange = row['exchange']
+
+        if exchange == 'SZSE':
+            code = 'sz.' + symbol
+        elif exchange == 'SSE':
+            code = 'sh.' + symbol
+
+        from_date = '2022-01-01'
+        to_date = datetime.now().strftime('%Y-%m-%d')
+        minu = cs.stock_bs_minutes(code, from_date, to_date, freq)
+        if minu is None:
+            print(f"### 获取{symbol}历史数据失败:")
+            continue
+
+        minu['symbol'] = symbol
+        result = minu.to_sql(name='m'+freq, con=conn, if_exists='append', index=False)
+        if result is None:
+            print(f"### 追加{symbol}历史数据失败:{result}")
+            continue
+        conn.commit()
+        print(f"追加{symbol}历史数据记录:{result}条.")
+
+        # 更新basic表状态
+        cur.execute(f"UPDATE basic SET is_m{freq}=? WHERE symbol=?", (1, symbol))
+        conn.commit()
+
+        break
+
+    cs.stock_bs_logout()
+
+    # 关闭数据库连接
+    cur.close()
+    conn.close()
+
+    return
+
+
 if __name__ == '__main__':
     # start()
     db_name = '../test-data/stock.db'
     update_basic(db_name)
-    get_stock_daily(db_name)
+    #get_stock_daily(db_name)
+    get_stock_minutes(db_name, '30')
