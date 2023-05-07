@@ -111,28 +111,6 @@ class DualMaStrategy(bt.Strategy):
         self.log('(MA Period %2d-%2d) Ending Value %.2f' %
                  (self.params.sPeriod, self.params.lPeriod, self.broker.getvalue()), doprint=True)
 
-# 创建一个DataFeed类来处理SQL查询结果集
-class SQLiteData(bt.feeds.PandasData):
-    params = (
-        ('fromdate', None),
-        ('todate', None),
-        ('compression', 1),
-        ('dtformat', '%Y-%m-%d'),
-        ('datetime', 'data'),
-        ('open', 'open'),
-        ('high', 'high'),
-        ('low', 'low'),
-        ('close', 'close'),
-        ('volume', 'volume'),
-        ('openinterest', None),
-        ('ticker', 'symbol'),
-        ('con', None)
-    )
-
-    # SQL查询
-    def get_data(self, conn):
-        return pdr.DataReader(self.params.ticker, 'daily', self.params.fromdate, self.params.todate,  self.params.con)
-
 if __name__ == '__main__':
     # Create a cerebro entity
     cerebro = bt.Cerebro()
@@ -147,7 +125,7 @@ if __name__ == '__main__':
     database_name = '../test-data/stock.db'
     conn = sqlite3.connect(database_name)
     sql = "SELECT date, open, high, low, close, volume FROM daily WHERE symbol=? ORDER BY date ASC"
-    symbol = '000001'
+    symbol = '000002'
     datefram = pd.read_sql_query(sql, conn, params=[symbol])
     # 把 date 作为日期索引，以符合 Backtrader 的要求
     datefram.index = pd.to_datetime(datefram['date'])
@@ -158,20 +136,8 @@ if __name__ == '__main__':
     datefram['close'] = datefram['close'].astype(float)
     datefram['volume'] = datefram['volume'].astype(float)
 
-    print(datefram['open'].dtype)
-    print(datefram.info())
-    print(datefram)
+    data = bt.feeds.PandasData(dataname=datefram)
 
-
-    #data = bt.feeds.PandasData(dataname=datefram, fromdate='2021-01-01', dtformat=('%Y-%m-%d'))
-    data = bt.feeds.PandasData(dataname=datefram,
-                               # datetime='Date',
-                               nocase=True,
-                               )
-    # print(data)
-
-    # data = SQLiteData(dataname='../test-data/stock.db', ticker='000001', fromdate='2020-01-01', todate='2021-01-01', con=conn)
-    # print(data)
     # Add the Data Feed to Cerebro
     cerebro.adddata(data)
 
@@ -185,6 +151,6 @@ if __name__ == '__main__':
     cerebro.broker.setcommission(commission=0.0003)
 
     # Run over everything
-    cerebro.run(maxcpus=1)
+    cerebro.run(maxcpus=2)
 
     #cerebro.plot()
