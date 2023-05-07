@@ -1,10 +1,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import datetime  # For datetime objects
-import os.path  # To manage paths
-import sys  # To find out the script name (in argv[0])
+import pandas as pd
+import pandas_datareader as pdr
+import datetime
+import sqlite3
 import backtrader as bt
+from backtrader.utils import date2num
 
 
 class DualMaStrategy(bt.Strategy):
@@ -107,8 +109,29 @@ class DualMaStrategy(bt.Strategy):
 
     def stop(self):
         self.log('(MA Period %2d-%2d) Ending Value %.2f' %
-                 (self.params.sPeriod,self.params.lPeriod, self.broker.getvalue()), doprint=True)
+                 (self.params.sPeriod, self.params.lPeriod, self.broker.getvalue()), doprint=True)
 
+# 创建一个DataFeed类来处理SQL查询结果集
+class SQLiteData(bt.feeds.PandasData):
+    params = (
+        ('fromdate', None),
+        ('todate', None),
+        ('compression', 1),
+        ('dtformat', '%Y-%m-%d'),
+        ('datetime', 'data'),
+        ('open', 'open'),
+        ('high', 'high'),
+        ('low', 'low'),
+        ('close', 'close'),
+        ('volume', 'volume'),
+        ('openinterest', None),
+        ('ticker', 'symbol'),
+        ('con', None)
+    )
+
+    # SQL查询
+    def get_data(self, conn):
+        return pdr.DataReader(self.params.ticker, 'daily', self.params.fromdate, self.params.todate,  self.params.con)
 
 if __name__ == '__main__':
     # Create a cerebro entity
@@ -120,29 +143,35 @@ if __name__ == '__main__':
     #     sPeriod=range(10, 61))
     strats = cerebro.addstrategy(DualMaStrategy)
 
-    # Datas are in a subfolder of the samples. Need to find where the script is
-    # because it could have been called from anywhere
-    datapath = os.path.join('../test-data/daily-sz.000001.csv')
+    # 读取数据
+    database_name = '../test-data/stock.db'
+    conn = sqlite3.connect(database_name)
+    sql = "SELECT date, open, high, low, close, volume FROM daily WHERE symbol=? ORDER BY date ASC"
+    symbol = '000001'
+    datefram = pd.read_sql_query(sql, conn, params=[symbol])
+    # 把 date 作为日期索引，以符合 Backtrader 的要求
+    datefram.index = pd.to_datetime(datefram['date'])
+    datefram.drop('date', axis=1, inplace=True)
+    datefram['open'] = datefram['open'].astype(float)
+    datefram['high'] = datefram['high'].astype(float)
+    datefram['low'] = datefram['low'].astype(float)
+    datefram['close'] = datefram['close'].astype(float)
+    datefram['volume'] = datefram['volume'].astype(float)
 
-    # Create a Data Feed
-    # date,time,open,high,low,close,volume,amount
-    data = bt.feeds.GenericCSVData(
-        dataname=datapath,
-        nullvalue=0.0,
+    print(datefram['open'].dtype)
+    print(datefram.info())
+    print(datefram)
 
-        dtformat=('%Y-%m-%d'),
-        tmformat=('%H:%M:%S'),
 
-        datetime=0,
-        time=-1,
-        high=2,
-        low=3,
-        open=1,
-        close=4,
-        volume=6,
-        openinterest=-1
-    )
+    #data = bt.feeds.PandasData(dataname=datefram, fromdate='2021-01-01', dtformat=('%Y-%m-%d'))
+    data = bt.feeds.PandasData(dataname=datefram,
+                               # datetime='Date',
+                               nocase=True,
+                               )
+    # print(data)
 
+    # data = SQLiteData(dataname='../test-data/stock.db', ticker='000001', fromdate='2020-01-01', todate='2021-01-01', con=conn)
+    # print(data)
     # Add the Data Feed to Cerebro
     cerebro.adddata(data)
 

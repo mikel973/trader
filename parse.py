@@ -41,7 +41,7 @@ def runstrat():
 
     # Get a pandas dataframe
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    datapath = os.path.join(modpath, 'test-data/test_daily.txt')
+    datapath = os.path.join(modpath, 'test-data/daily-sz.000001.csv')
     # datapath = ('test-data/test_daily.txt')
 
     # Simulate the header row isn't there if noheaders requested
@@ -67,6 +67,9 @@ def runstrat():
                                # datetime='Date',
                                nocase=True,
                                )
+    print(dataframe)
+    print(dataframe['open'].dtype)
+    print(dataframe.info())
 
     cerebro.adddata(data)
 

@@ -241,5 +241,5 @@ if __name__ == '__main__':
     # start()
     db_name = '../test-data/stock.db'
     update_basic(db_name)
-    #get_stock_daily(db_name)
-    get_stock_minutes(db_name, '30')
+    get_stock_daily(db_name)
+    #get_stock_minutes(db_name, '30')
