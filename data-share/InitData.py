@@ -160,8 +160,6 @@ def get_stock_daily(db_name):
             continue
 
         daily['symbol'] = symbol
-        # daily.index = pd.to_datetime(daily['date'])
-        # daily.drop('date', axis=1, inplace=True)
         daily['open'] = daily['open'].astype(float)
         daily['high'] = daily['high'].astype(float)
         daily['low'] = daily['low'].astype(float)

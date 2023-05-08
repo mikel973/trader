@@ -130,11 +130,6 @@ if __name__ == '__main__':
     # 把 date 作为日期索引，以符合 Backtrader 的要求
     datefram.index = pd.to_datetime(datefram['date'])
     # datefram.drop('date', axis=1, inplace=True)
-    # datefram['open'] = datefram['open'].astype(float)
-    # datefram['high'] = datefram['high'].astype(float)
-    # datefram['low'] = datefram['low'].astype(float)
-    # datefram['close'] = datefram['close'].astype(float)
-    # datefram['volume'] = datefram['volume'].astype(float)
 
     data = bt.feeds.PandasData(dataname=datefram)
 
