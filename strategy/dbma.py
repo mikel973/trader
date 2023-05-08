@@ -125,7 +125,7 @@ if __name__ == '__main__':
     database_name = '../test-data/stock.db'
     conn = sqlite3.connect(database_name)
     sql = "SELECT date, open, high, low, close, volume FROM daily WHERE symbol=? ORDER BY date ASC"
-    symbol = '000001'
+    symbol = '000007'
     datefram = pd.read_sql_query(sql, conn, params=[symbol])
     # 把 date 作为日期索引，以符合 Backtrader 的要求
     datefram.index = pd.to_datetime(datefram['date'])

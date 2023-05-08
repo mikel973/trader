@@ -128,6 +128,8 @@ def update_basic(name_database, force_update: bool = False):
     return
 
 
+def to_float():
+    print(name)
 def get_stock_daily(db_name):
 
     # 连接到SQLite数据库
@@ -164,6 +166,14 @@ def get_stock_daily(db_name):
         daily['high'] = daily['high'].astype(float)
         daily['low'] = daily['low'].astype(float)
         daily['close'] = daily['close'].astype(float)
+
+        # 检查并清理volume列中的异常值
+        for vi, vr in daily.iterrows():
+            v = vr['volume']
+            if not v.isnumeric() and not v.replace('.', '').isnumeric():
+                daily.at[vi, 'volume'] = None
+                print(f'volume exception: {v}')
+        # 将volume列的字符变量转换成float类型
         daily['volume'] = daily['volume'].astype(float)
 
         result = daily.to_sql(name='daily', con=conn, if_exists='append', index=True)
