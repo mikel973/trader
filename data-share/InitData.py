@@ -160,7 +160,15 @@ def get_stock_daily(db_name):
             continue
 
         daily['symbol'] = symbol
-        result = daily.to_sql(name='daily', con=conn, if_exists='append', index=False)
+        # daily.index = pd.to_datetime(daily['date'])
+        # daily.drop('date', axis=1, inplace=True)
+        daily['open'] = daily['open'].astype(float)
+        daily['high'] = daily['high'].astype(float)
+        daily['low'] = daily['low'].astype(float)
+        daily['close'] = daily['close'].astype(float)
+        daily['volume'] = daily['volume'].astype(float)
+
+        result = daily.to_sql(name='daily', con=conn, if_exists='append', index=True)
         if result is None:
             print(f"### 追加{symbol}历史数据失败:{result}")
             continue
@@ -171,7 +179,7 @@ def get_stock_daily(db_name):
         cur.execute(f"UPDATE basic SET is_daily=? WHERE symbol=?", (1, symbol))
         conn.commit()
 
-        # break
+        break
 
     cs.stock_bs_logout()
 

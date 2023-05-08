@@ -2,7 +2,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import pandas as pd
-import pandas_datareader as pdr
+#import pandas_datareader as pdr
 import datetime
 import sqlite3
 import backtrader as bt
@@ -125,16 +125,16 @@ if __name__ == '__main__':
     database_name = '../test-data/stock.db'
     conn = sqlite3.connect(database_name)
     sql = "SELECT date, open, high, low, close, volume FROM daily WHERE symbol=? ORDER BY date ASC"
-    symbol = '000002'
+    symbol = '000001'
     datefram = pd.read_sql_query(sql, conn, params=[symbol])
     # 把 date 作为日期索引，以符合 Backtrader 的要求
     datefram.index = pd.to_datetime(datefram['date'])
-    datefram.drop('date', axis=1, inplace=True)
-    datefram['open'] = datefram['open'].astype(float)
-    datefram['high'] = datefram['high'].astype(float)
-    datefram['low'] = datefram['low'].astype(float)
-    datefram['close'] = datefram['close'].astype(float)
-    datefram['volume'] = datefram['volume'].astype(float)
+    # datefram.drop('date', axis=1, inplace=True)
+    # datefram['open'] = datefram['open'].astype(float)
+    # datefram['high'] = datefram['high'].astype(float)
+    # datefram['low'] = datefram['low'].astype(float)
+    # datefram['close'] = datefram['close'].astype(float)
+    # datefram['volume'] = datefram['volume'].astype(float)
 
     data = bt.feeds.PandasData(dataname=datefram)
 
