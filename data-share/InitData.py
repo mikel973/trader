@@ -128,8 +128,6 @@ def update_basic(name_database, force_update: bool = False):
     return
 
 
-def to_float():
-    print(name)
 def get_stock_daily(db_name):
 
     # 连接到SQLite数据库
@@ -176,7 +174,7 @@ def get_stock_daily(db_name):
         # 将volume列的字符变量转换成float类型
         daily['volume'] = daily['volume'].astype(float)
 
-        result = daily.to_sql(name='daily', con=conn, if_exists='append', index=True)
+        result = daily.to_sql(name='daily', con=conn, if_exists='append', index=False)
         if result is None:
             print(f"### 追加{symbol}历史数据失败:{result}")
             continue

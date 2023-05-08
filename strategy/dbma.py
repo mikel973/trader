@@ -37,6 +37,8 @@ class DualMaStrategy(bt.Strategy):
         self.sSma = bt.indicators.SimpleMovingAverage(self.datas[0], period=self.params.sPeriod)
         self.mSma = bt.indicators.SimpleMovingAverage(self.datas[0], period=self.params.mPeriod)
         self.lSma = bt.indicators.SimpleMovingAverage(self.datas[0], period=self.params.lPeriod)
+        self.sar = bt.indicators.ParabolicSAR(PeriodN=self)
+
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
