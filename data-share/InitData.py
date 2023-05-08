@@ -177,7 +177,8 @@ def get_stock_daily(db_name):
         cur.execute(f"UPDATE basic SET is_daily=? WHERE symbol=?", (1, symbol))
         conn.commit()
 
-        break
+        # Only for test
+        # break
 
     cs.stock_bs_logout()
 
