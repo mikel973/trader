@@ -158,4 +158,12 @@ if __name__ == '__main__':
     # Run over everything
     cerebro.run(maxcpus=1)
 
+    l = cerebro.datas[0].buflen()
+    print("buflen:", l)
+
+
+    print("Date:", bt.num2date(cerebro.datas[0].datetime[-(cerebro.datas[0].buflen()-1)]).strftime('%Y-%m-%d'))
+
+    #start_date = bt.num2date(strategy.datas[0].datetime[0]).strftime('%Y-%m-%d')
+
     #cerebro.plot()
