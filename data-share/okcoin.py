@@ -8,9 +8,9 @@ def start():
 
     symbol = "BTC-USDT"
 
-    api_key = 'e7369f24-67f5-4abd-9b2c-5825f48d9024'
-    api_secret_key = 'B0FB8A1994EC06736DEFC3D6C63BC134'
-    passphrase = 'moni-0001'
+    api_key = ''
+    api_secret_key = ''
+    passphrase = ''
     # flag = "1"  # live trading: 0, demo trading: 1
     market_api = MarketData.MarketAPI(api_key, api_secret_key, passphrase, use_server_time=False, flag='1')
     result = market_api.get_candlesticks(instId="BTC-USDT")
