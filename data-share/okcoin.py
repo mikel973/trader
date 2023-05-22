@@ -12,26 +12,12 @@ def start(db_name):
     passphrase = ''
     # flag = "1"  # live trading: 0, demo trading: 1
     market_api = MarketData.MarketAPI(api_key, api_secret_key, passphrase, use_server_time=False, flag='1')
-    result = market_api.get_candlesticks(instId="BTC-USDT")
+    result = market_api.get_candlesticks(instId="BTC-USDT",bar="15m")
 
     k_data = result['data']
-
-    # k_data['date'] = datetime.datetime.fromtimestamp(int(k_data['datetime'])).strftime('%Y-%m-%d %H:%M:%S')
-
-    # 将timestamp列转换为int类型
-
-
-    # # 将timestamp列转换为Timestamp类型
-    # k_data['datetime'] = pd.to_datetime(k_data['datetime'], unit='ms')
-    #
-    # # 将timestamp列转换为年月日时分秒格式的字符串
-    # k_data['date'] = k_data['datetime'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S'))
-    #
-    # k_data['date'] = k_data['datetime'].apply(lambda x: int(x).strftime('%Y-%m-%d %H:%M:%S'))
-
     col_name = ['datetime', 'open', 'high', 'low', 'close', 'vol', 'volCcy', 'volCcyQuote', 'confirm']
     k_data = pd.DataFrame(data=k_data, columns=col_name)
-    #k_data['date'] = k_data['datetime'].copy
+
     k_data['date'] = pd.to_datetime(k_data['datetime'], unit='ms')
     k_data['date'] = k_data['date'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S'))
     k_data['open'] = k_data['open'].astype(float)
@@ -45,16 +31,15 @@ def start(db_name):
 
     k_data.to_csv(str('./test.csv'))
 
-    conn = sqlite3.connect(db_name)
-    result = k_data.to_sql(name='daily', con=conn, if_exists='replace', index=False)
-    if result is None:
-        print(f"### 追加{symbol}历史数据失败:{result}")
-    else:
-        conn.commit()
-        print(f"追加{symbol}历史数据记录:{result}条.")
-
-    # 关闭数据库连接
-    conn.close()
+    # conn = sqlite3.connect(db_name)
+    # result = k_data.to_sql(name='daily', con=conn, if_exists='replace', index=False)
+    # if result is None:
+    #     print(f"### 追加{symbol}历史数据失败:{result}")
+    # else:
+    #     conn.commit()
+    #     print(f"追加{symbol}历史数据记录:{result}条.")
+    # # 关闭数据库连接
+    # conn.close()
 
     return
 
