@@ -4,7 +4,7 @@ import pandas as pd
 import okx.MarketData as MarketData
 
 def start(db_name):
-    #conn = sqlite3.connect(db_name)
+
 
     symbol = "BTC-USDT"
     api_key = ''
@@ -15,7 +15,7 @@ def start(db_name):
     result = market_api.get_candlesticks(instId="BTC-USDT")
 
     k_data = result['data']
-    data_columes = ['datetime', 'open', 'high', 'low', 'close', 'vol', 'volCcy', 'volCcyQuote', 'confirm']
+
     # k_data['date'] = datetime.datetime.fromtimestamp(int(k_data['datetime'])).strftime('%Y-%m-%d %H:%M:%S')
 
     # 将timestamp列转换为int类型
@@ -29,8 +29,8 @@ def start(db_name):
     #
     # k_data['date'] = k_data['datetime'].apply(lambda x: int(x).strftime('%Y-%m-%d %H:%M:%S'))
 
-
-    k_data = pd.DataFrame(data=k_data, columns=data_columes)
+    col_name = ['datetime', 'open', 'high', 'low', 'close', 'vol', 'volCcy', 'volCcyQuote', 'confirm']
+    k_data = pd.DataFrame(data=k_data, columns=col_name)
     #k_data['date'] = k_data['datetime'].copy
     k_data['date'] = pd.to_datetime(k_data['datetime'], unit='ms')
     k_data['date'] = k_data['date'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S'))
@@ -39,17 +39,22 @@ def start(db_name):
     k_data['low'] = k_data['low'].astype(float)
     k_data['close'] = k_data['close'].astype(float)
     k_data = k_data.set_index('datetime')
+
+    col_name = ['date', 'open', 'high', 'low', 'close', 'vol', 'volCcy', 'volCcyQuote', 'confirm']
+    k_data = k_data.reindex(columns=col_name)
+
     k_data.to_csv(str('./test.csv'))
 
-    # result = k_data.to_sql(name='daily', con=conn, if_exists='replace', index=False)
-    # if result is None:
-    #     print(f"### 追加{symbol}历史数据失败:{result}")
-    # else:
-    #     conn.commit()
-    #     print(f"追加{symbol}历史数据记录:{result}条.")
-    #
-    # # 关闭数据库连接
-    # conn.close()
+    conn = sqlite3.connect(db_name)
+    result = k_data.to_sql(name='daily', con=conn, if_exists='replace', index=False)
+    if result is None:
+        print(f"### 追加{symbol}历史数据失败:{result}")
+    else:
+        conn.commit()
+        print(f"追加{symbol}历史数据记录:{result}条.")
+
+    # 关闭数据库连接
+    conn.close()
 
     return
 
