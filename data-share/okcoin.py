@@ -12,7 +12,7 @@ def start(db_name):
     passphrase = ''
     # flag = "1"  # live trading: 0, demo trading: 1
     market_api = MarketData.MarketAPI(api_key, api_secret_key, passphrase, use_server_time=False, flag='1')
-    result = market_api.get_candlesticks(instId="BTC-USDT",bar="15m")
+    result = market_api.get_candlesticks(instId="BTC-USDT", bar="15m")
 
     k_data = result['data']
     col_name = ['datetime', 'open', 'high', 'low', 'close', 'vol', 'volCcy', 'volCcyQuote', 'confirm']
